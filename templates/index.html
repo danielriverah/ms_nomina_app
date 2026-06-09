@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Nómina — Mega Fresh Produce</title>
+<style>
+:root {
+  --azul:#1F4E79; --azul2:#2E75B6; --azul-clr:#BDD7EE; --azul-xclr:#EBF3FB;
+  --verde:#375623; --verde-clr:#E2EFDA;
+  --rojo:#C00000; --rojo-clr:#FFCCCC;
+  --gris:#6c757d; --gris-clr:#f8f9fa;
+  --naranja:#E67E22; --amarillo:#F9C74F;
+  --sombra:0 2px 8px rgba(0,0,0,.12);
+  --radio:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;background:#eef2f7;color:#222}
+
+/* ── Layout ── */
+#app{display:flex;height:100vh;overflow:hidden}
+#sidebar{width:220px;min-width:220px;background:var(--azul);display:flex;flex-direction:column;z-index:10}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#topbar{background:#fff;border-bottom:2px solid var(--azul-clr);padding:10px 20px;display:flex;align-items:center;gap:12px;box-shadow:var(--sombra)}
+#content{flex:1;overflow-y:auto;padding:20px}
+
+/* ── Sidebar ── */
+.sb-logo{padding:18px 16px 12px;border-bottom:1px solid rgba(255,255,255,.15)}
+.sb-logo h2{color:#fff;font-size:14px;font-weight:700;line-height:1.3}
+.sb-logo p{color:#BDD7EE;font-size:10px;margin-top:2px}
+.sb-nav{flex:1;padding:8px 0}
+.sb-nav a{display:flex;align-items:center;gap:10px;padding:10px 16px;color:rgba(255,255,255,.8);text-decoration:none;font-size:12px;transition:.15s}
+.sb-nav a:hover,.sb-nav a.active{background:rgba(255,255,255,.15);color:#fff}
+.sb-nav a .ico{font-size:16px;width:20px;text-align:center}
+.sb-section{padding:8px 16px 4px;color:rgba(255,255,255,.4);font-size:10px;text-transform:uppercase;letter-spacing:.8px;margin-top:4px}
+.sb-nav a.active{border-left:3px solid var(--amarillo)}
+
+/* ── Topbar ── */
+#topbar h1{font-size:15px;font-weight:700;color:var(--azul);flex:1}
+.badge{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
+.badge-azul{background:var(--azul-clr);color:var(--azul)}
+.badge-verde{background:var(--verde-clr);color:var(--verde)}
+.badge-rojo{background:var(--rojo-clr);color:var(--rojo)}
+.badge-gris{background:#e0e0e0;color:#555}
+
+/* ── Cards ── */
+.card{background:#fff;border-radius:var(--radio);box-shadow:var(--sombra);margin-bottom:16px}
+.card-header{padding:14px 18px;border-bottom:1px solid #e8ecf0;display:flex;align-items:center;justify-content:space-between}
+.card-header h3{font-size:14px;font-weight:700;color:var(--azul)}
+.card-body{padding:16px 18px}
+
+/* ── Stats row ── */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+.stat{background:#fff;border-radius:var(--radio);padding:14px 16px;box-shadow:var(--sombra);border-left:4px solid var(--azul2)}
+.stat.verde{border-color:var(--verde)}
+.stat.rojo{border-color:var(--rojo)}
+.stat.naranja{border-color:var(--naranja)}
+.stat label{font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:.5px;display:block}
+.stat .val{font-size:20px;font-weight:700;color:var(--azul);margin-top:2px}
+.stat.verde .val{color:var(--verde)}
+.stat.rojo .val{color:var(--rojo)}
+.stat.naranja .val{color:var(--naranja)}
+
+/* ── Tabla ── */
+.tbl-wrap{overflow-x:auto;border-radius:6px;border:1px solid #e0e4ea}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:var(--azul);color:#fff;padding:8px 10px;font-weight:600;white-space:nowrap;text-align:left;position:sticky;top:0;z-index:2}
+thead th.num{text-align:right}
+tbody tr{border-bottom:1px solid #eef0f4}
+tbody tr:hover{background:var(--azul-xclr)}
+tbody tr.alt{background:#fafbfd}
+tbody td{padding:6px 10px;vertical-align:middle}
+tbody td.num{text-align:right;font-variant-numeric:tabular-nums;font-family:monospace;font-size:11.5px}
+tbody td.cen{text-align:center}
+.tbl-footer td{background:var(--azul);color:#fff;font-weight:700;padding:8px 10px}
+.tbl-footer td.num{text-align:right}
+
+/* ── Formularios ── */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.form-grid.cols2{grid-template-columns:repeat(2,1fr)}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:11px;font-weight:600;color:var(--gris)}
+.form-group input,.form-group select,.form-group textarea{
+  border:1px solid #ced4da;border-radius:5px;padding:7px 10px;font-size:12px;
+  transition:.15s;background:#fff;color:#222}
+.form-group input:focus,.form-group select:focus{border-color:var(--azul2);outline:none;box-shadow:0 0 0 3px rgba(46,117,182,.15)}
+.form-group input.err{border-color:var(--rojo)}
+.form-group .hint{font-size:10px;color:var(--gris)}
+
+/* ── Botones ── */
+.btn{padding:7px 16px;border-radius:5px;border:none;cursor:pointer;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:.15s}
+.btn:hover{filter:brightness(1.08)}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--azul);color:#fff}
+.btn-success{background:var(--verde);color:#fff}
+.btn-danger{background:var(--rojo);color:#fff}
+.btn-warning{background:var(--naranja);color:#fff}
+.btn-outline{background:#fff;color:var(--azul);border:1px solid var(--azul)}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-xs{padding:2px 7px;font-size:10px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── Input inline tabla ── */
+.inp-cell{width:100%;border:1px solid #dde;border-radius:3px;padding:3px 6px;font-size:11.5px;text-align:right;background:#fffdf0}
+.inp-cell:focus{border-color:var(--azul2);outline:none;background:#fff}
+.inp-cell.bool{width:36px;text-align:center;cursor:pointer}
+input[type=checkbox].ck{width:16px;height:16px;cursor:pointer;accent-color:var(--azul2)}
+
+/* ── Alerts ── */
+.alert{padding:10px 14px;border-radius:6px;margin-bottom:12px;font-size:12px;display:flex;align-items:center;gap:8px}
+.alert-success{background:var(--verde-clr);color:var(--verde);border:1px solid #b7d7a8}
+.alert-danger{background:var(--rojo-clr);color:var(--rojo);border:1px solid #f4b8b8}
+.alert-info{background:var(--azul-xclr);color:var(--azul);border:1px solid var(--azul-clr)}
+.alert-warning{background:#FFF3CD;color:#856404;border:1px solid #FFECB5}
+
+/* ── Modal ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:flex;align-items:center;justify-content:center}
+.modal{background:#fff;border-radius:10px;width:640px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.25)}
+.modal-header{padding:16px 20px;border-bottom:1px solid #e0e4ea;display:flex;align-items:center;justify-content:space-between}
+.modal-header h3{font-size:15px;font-weight:700;color:var(--azul)}
+.modal-body{padding:20px;overflow-y:auto;flex:1}
+.modal-footer{padding:14px 20px;border-top:1px solid #e0e4ea;display:flex;gap:8px;justify-content:flex-end}
+.close-btn{background:none;border:none;font-size:20px;cursor:pointer;color:var(--gris);line-height:1}
+
+/* ── Loading ── */
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid #ccc;border-top-color:var(--azul);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Tabs ── */
+.tabs{display:flex;border-bottom:2px solid var(--azul-clr);margin-bottom:16px;gap:2px}
+.tab{padding:8px 16px;cursor:pointer;border-radius:6px 6px 0 0;font-size:12px;font-weight:600;color:var(--gris);border:1px solid transparent;border-bottom:none;transition:.15s}
+.tab:hover{background:var(--azul-xclr);color:var(--azul)}
+.tab.active{background:#fff;color:var(--azul);border-color:var(--azul-clr);border-bottom:2px solid #fff;margin-bottom:-2px}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* ── Semáforo ── */
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
+.dot-verde{background:#27AE60}
+.dot-rojo{background:#E74C3C}
+.dot-amarillo{background:#F39C12}
+.dot-gris{background:#95A5A6}
+
+/* ── Responsive ── */
+@media(max-width:768px){
+  #sidebar{width:52px;min-width:52px}
+  .sb-logo p,.sb-nav a span,.sb-section{display:none}
+  .form-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ── SIDEBAR ── -->
+<nav id="sidebar">
+  <div class="sb-logo">
+    <h2>🌿 Mega Fresh</h2>
+    <p>Sistema de Nómina 2026</p>
+  </div>
+  <div class="sb-nav">
+    <div class="sb-section">Nómina</div>
+    <a href="#" onclick="showPage('dashboard')" id="nav-dashboard" class="active">
+      <span class="ico">📊</span><span>Dashboard</span>
+    </a>
+    <a href="#" onclick="showPage('periodos')" id="nav-periodos">
+      <span class="ico">📅</span><span>Períodos</span>
+    </a>
+    <a href="#" onclick="showPage('captura')" id="nav-captura">
+      <span class="ico">✏️</span><span>Captura</span>
+    </a>
+    <a href="#" onclick="showPage('prenomina')" id="nav-prenomina">
+      <span class="ico">🧮</span><span>Prenómina</span>
+    </a>
+    <div class="sb-section">Catálogos</div>
+    <a href="#" onclick="showPage('trabajadores')" id="nav-trabajadores">
+      <span class="ico">👥</span><span>Trabajadores</span>
+    </a>
+    <a href="#" onclick="showPage('altas')" id="nav-altas">
+      <span class="ico">➕</span><span>Altas / Bajas</span>
+    </a>
+  </div>
+</nav>
+
+<!-- ── MAIN ── -->
+<div id="main">
+  <div id="topbar">
+    <h1 id="page-title">Dashboard</h1>
+    <span id="alert-global" style="display:none"></span>
+    <div id="topbar-actions"></div>
+  </div>
+  <div id="content">
+    <!-- Páginas se insertan aquí dinámicamente -->
+  </div>
+</div>
+
+</div><!-- #app -->
+
+<script>
+// ─────────────────────────────────────────────
+// ESTADO GLOBAL
+// ─────────────────────────────────────────────
+const state = {
+  page: 'dashboard',
+  periodoActivo: null,
+  incidencias: [],
+  trabajadores: [],
+};
+
+// ─────────────────────────────────────────────
+// UTILIDADES
+// ─────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const fmt = (n, dec=2) => n == null ? '-' : Number(n).toLocaleString('es-MX', {minimumFractionDigits:dec, maximumFractionDigits:dec});
+const fmtM = n => '$' + fmt(n);
+const fmtP = n => fmt(n*100,1) + '%';
+
+async function api(url, method='GET', body=null) {
+  const opts = {method, headers:{'Content-Type':'application/json'}};
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || 'Error en servidor');
+  return data;
+}
+
+function toast(msg, tipo='info') {
+  const el = $('alert-global');
+  el.className = `alert alert-${tipo}`;
+  el.textContent = msg;
+  el.style.display = 'flex';
+  setTimeout(() => el.style.display = 'none', 4000);
+}
+
+function setNav(page) {
+  document.querySelectorAll('.sb-nav a').forEach(a => a.classList.remove('active'));
+  const nav = $('nav-' + page);
+  if (nav) nav.classList.add('active');
+}
+
+// ─────────────────────────────────────────────
+// ROUTER
+// ─────────────────────────────────────────────
+function showPage(page) {
+  state.page = page;
+  setNav(page);
+  const titles = {
+    dashboard:'Dashboard', periodos:'Períodos de Nómina',
+    captura:'Captura de Incidencias', prenomina:'Prenómina y Exportación',
+    trabajadores:'Catálogo de Trabajadores', altas:'Altas y Bajas',
+  };
+  $('page-title').textContent = titles[page] || page;
+  $('topbar-actions').innerHTML = '';
+  const pages = {dashboard: pageDashboard, periodos: pagePeriodos, captura: pageCaptura,
+                 prenomina: pagePrenomina, trabajadores: pageTrabajadores, altas: pageAltas};
+  if (pages[page]) pages[page]();
+}
+
+// ─────────────────────────────────────────────
+// PÁGINA: DASHBOARD
+// ─────────────────────────────────────────────
+async function pageDashboard() {
+  $('content').innerHTML = '<div class="spinner"></div>';
+  try {
+    const [periodos, trabas] = await Promise.all([
+      api('/api/periodos'), api('/api/trabajadores')
+    ]);
+    const ultimo = periodos[0];
+    let resumen = null;
+    if (ultimo) resumen = await api(`/api/periodos/${ultimo.id}/resumen`);
+
+    $('content').innerHTML = `
+    <div class="stats-row">
+      <div class="stat"><label>Trabajadores Activos</label><div class="val">${trabas.length}</div></div>
+      <div class="stat verde"><label>Último Período</label><div class="val" style="font-size:14px">${ultimo ? 'Sem '+ultimo.num_semana+'/'+ultimo.anio : '—'}</div></div>
+      <div class="stat"><label>Estatus</label><div class="val" style="font-size:14px">${ultimo ? ultimo.estatus : '—'}</div></div>
+      <div class="stat naranja"><label>Neto Fiscal Total</label><div class="val">${resumen ? fmtM(resumen.total.neto_fiscal) : '—'}</div></div>
+      <div class="stat rojo"><label>Diferencia (Efectivo)</label><div class="val">${resumen ? fmtM(resumen.total.diferencia) : '—'}</div></div>
+    </div>
+
+    ${resumen ? `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      ${['PERMANENTE','EVENTUAL'].map(tipo => {
+        const r = resumen[tipo.toLowerCase()];
+        return `<div class="card">
+          <div class="card-header"><h3>${tipo}S — ${r.trabajadores} trabajadores</h3></div>
+          <div class="card-body">
+            <table style="width:100%;font-size:12px">
+              <tr><td>Total Percepciones</td><td style="text-align:right;font-weight:600">${fmtM(r.suma_fiscal)}</td></tr>
+              <tr><td>Cuota Obrera IMSS</td><td style="text-align:right">${fmtM(r.cuota_obrera)}</td></tr>
+              <tr><td>ISR Neto</td><td style="text-align:right">${fmtM(r.isr_neto)}</td></tr>
+              <tr><td>Subsidio al Empleo</td><td style="text-align:right">${fmtM(r.sub_emp)}</td></tr>
+              <tr><td>INFONAVIT</td><td style="text-align:right">${fmtM(r.infonavit)}</td></tr>
+              <tr style="background:#f0f7ff"><td><strong>Neto Fiscal</strong></td><td style="text-align:right;font-weight:700;color:var(--verde)">${fmtM(r.neto_fiscal)}</td></tr>
+              <tr style="background:#fff0f0"><td><strong>Diferencia (Efectivo)</strong></td><td style="text-align:right;font-weight:700;color:var(--rojo)">${fmtM(r.diferencia)}</td></tr>
+            </table>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    ` : '<div class="alert alert-info">ℹ️ No hay períodos calculados aún. Crea un nuevo período para comenzar.</div>'}
+
+    <div class="card">
+      <div class="card-header"><h3>Últimos períodos</h3><button class="btn btn-primary btn-sm" onclick="showPage('periodos')">Ver todos</button></div>
+      <div class="card-body">
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Semana</th><th>Año</th><th>Período</th><th>Fecha Pago</th><th>Estatus</th><th>Trabajadores</th><th>Neto Fiscal</th></tr></thead>
+          <tbody>
+          ${periodos.slice(0,5).map((p,i) => `
+          <tr class="${i%2?'alt':''}">
+            <td class="cen"><strong>${p.num_semana}</strong></td>
+            <td class="cen">${p.anio}</td>
+            <td>${p.fecha_inicio} al ${p.fecha_fin}</td>
+            <td class="cen">${p.fecha_pago}</td>
+            <td class="cen"><span class="badge ${p.estatus==='CERRADO'?'badge-verde':p.estatus==='CALCULADO'?'badge-azul':'badge-gris'}">${p.estatus}</span></td>
+            <td class="num">—</td>
+            <td class="num">—</td>
+          </tr>`).join('')}
+          </tbody>
+        </table></div>
+      </div>
+    </div>`;
+  } catch(e) { $('content').innerHTML = `<div class="alert alert-danger">❌ ${e.message}</div>`; }
+}
+
+// ─────────────────────────────────────────────
+// PÁGINA: PERÍODOS
+// ─────────────────────────────────────────────
+async function pagePeriodos() {
+  $('content').innerHTML = '<div class="spinner"></div>';
+  $('topbar-actions').innerHTML = `<button class="btn btn-primary btn-sm" onclick="modalNuevoPeriodo()">+ Nuevo Período</button>`;
+
+  const periodos = await api('/api/periodos');
+
+  $('content').innerHTML = `
+  <div class="card">
+    <div class="card-header"><h3>Períodos de Nómina</h3></div>
+    <div class="card-body">
+      <div class="tbl-wrap"><table>
+        <thead><tr>
+          <th>Semana</th><th>Año</th><th>Inicio</th><th>Fin</th><th>Fecha Pago</th>
+          <th>UMA</th><th>SM</th><th>SE Decreto</th><th>Estatus</th><th>Acciones</th>
+        </tr></thead>
+        <tbody id="tbody-periodos">
+        ${periodos.map((p,i) => `
+        <tr class="${i%2?'alt':''}">
+          <td class="cen"><strong>${p.num_semana}</strong></td>
+          <td class="cen">${p.anio}</td>
+          <td>${p.fecha_inicio}</td><td>${p.fecha_fin}</td>
+          <td class="cen"><strong>${p.fecha_pago}</strong></td>
+          <td class="num">${fmtM(p.uma_vigente)}</td>
+          <td class="num">${fmtM(p.sm_vigente)}</td>
+          <td class="num">${fmtM(p.se_decreto)}</td>
+          <td class="cen"><span class="badge ${p.estatus==='CERRADO'?'badge-verde':p.estatus==='CALCULADO'?'badge-azul':'badge-gris'}">${p.estatus}</span></td>
+          <td style="white-space:nowrap">
+            <button class="btn btn-outline btn-xs" onclick="abrirCaptura(${p.id})">✏️ Capturar</button>
+            <button class="btn btn-primary btn-xs" onclick="abrirPrenomina(${p.id})">🧮 Calcular</button>
+          </td>
+        </tr>`).join('')}
+        </tbody>
+      </table></div>
+    </div>
+  </div>`;
+}
+
+function modalNuevoPeriodo() {
+  const hoy = new Date();
+  // Calcular semana del año
+  const inicio = new Date(hoy.getFullYear(), 0, 1);
+  const semana = Math.ceil(((hoy - inicio) / 86400000 + inicio.getDay() + 1) / 7);
+  
+  // Sugerir lunes de la semana actual
+  const dia = hoy.getDay();
+  const lunes = new Date(hoy); lunes.setDate(hoy.getDate() - (dia === 0 ? 6 : dia - 1));
+  const domingo = new Date(lunes); domingo.setDate(lunes.getDate() + 6);
+  const pago = new Date(lunes); pago.setDate(lunes.getDate() + 8); // pago miércoles siguiente
+  
+  const fmt_date = d => d.toISOString().split('T')[0];
+
+  showModal('Nuevo Período de Nómina', `
+  <div class="form-grid">
+    <div class="form-group"><label>Semana #</label><input id="f-semana" type="number" value="${semana}" min="1" max="53"></div>
+    <div class="form-group"><label>Año</label><input id="f-anio" type="number" value="${hoy.getFullYear()}"></div>
+    <div class="form-group"><label>Fecha Inicio</label><input id="f-inicio" type="date" value="${fmt_date(lunes)}"></div>
+    <div class="form-group"><label>Fecha Fin</label><input id="f-fin" type="date" value="${fmt_date(domingo)}"></div>
+    <div class="form-group"><label>Fecha de Pago</label><input id="f-pago" type="date" value="${fmt_date(pago)}"></div>
+    <div class="form-group"><label>UMA Vigente</label><input id="f-uma" type="number" step="0.01" value="117.31"></div>
+    <div class="form-group"><label>SM Diario</label><input id="f-sm" type="number" step="0.01" value="315.04"></div>
+  </div>
+  <div class="alert alert-info" style="margin-top:12px">ℹ️ El Subsidio al Empleo por Decreto se calculará automáticamente según la fecha de pago.</div>
+  `, async () => {
+    try {
+      const r = await api('/api/periodos', 'POST', {
+        num_semana: +$('f-semana').value,
+        anio: +$('f-anio').value,
+        fecha_inicio: $('f-inicio').value,
+        fecha_fin: $('f-fin').value,
+        fecha_pago: $('f-pago').value,
+        uma_vigente: +$('f-uma').value,
+        sm_vigente: +$('f-sm').value,
+      });
+      closeModal();
+      toast(`Período Semana ${r.num_semana} creado. ${r.incidencias_creadas} incidencias generadas.`, 'success');
+      pagePeriodos();
+    } catch(e) { toast(e.message, 'danger'); }
+  });
+}
+
+function abrirCaptura(pid) {
+  state.periodoActivo = pid;
+  showPage('captura');
+}
+function abrirPrenomina(pid) {
+  state.periodoActivo = pid;
+  showPage('prenomina');
+}
+
+// ─────────────────────────────────────────────
+// PÁGINA: CAPTURA DE INCIDENCIAS
+// ─────────────────────────────────────────────
+async function pageCaptura() {
+  if (!state.periodoActivo) {
+    $('content').innerHTML = '<div class="alert alert-warning">⚠️ Selecciona un período primero desde la sección Períodos.</div>';
+    return;
+  }
+  $('content').innerHTML = '<div class="spinner"></div>';
+
+  const [periodo, incs] = await Promise.all([
+    api(`/api/periodos/${state.periodoActivo}`),
+    api(`/api/periodos/${state.periodoActivo}/incidencias`)
+  ]);
+
+  state.incidencias = incs;
+
+  $('topbar-actions').innerHTML = `
+    <input type="text" id="buscar-inc" placeholder="🔍 Buscar trabajador..." style="border:1px solid #ccc;border-radius:5px;padding:5px 10px;font-size:12px;width:200px" oninput="filtrarCaptura()">
+    <select id="filtro-tipo" onchange="filtrarCaptura()" style="border:1px solid #ccc;border-radius:5px;padding:5px;font-size:12px">
+      <option value="">Todos</option><option value="PERMANENTE">Permanente</option><option value="EVENTUAL">Eventual</option>
+    </select>
+    <button class="btn btn-success btn-sm" onclick="guardarCapturaMasiva()">💾 Guardar Todo</button>
+  `;
+
+  $('content').innerHTML = `
+  <div class="card" style="margin-bottom:8px">
+    <div class="card-body" style="padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+      <span><strong>Semana ${periodo.num_semana}/${periodo.anio}</strong></span>
+      <span>📅 ${periodo.fecha_inicio} al ${periodo.fecha_fin}</span>
+      <span>💳 Pago: <strong>${periodo.fecha_pago}</strong></span>
+      <span class="badge ${periodo.estatus==='CERRADO'?'badge-verde':periodo.estatus==='CALCULADO'?'badge-azul':'badge-gris'}">${periodo.estatus}</span>
+      <span style="margin-left:auto;color:var(--gris);font-size:11px">${incs.length} trabajadores</span>
+    </div>
+  </div>
+
+  <div class="alert alert-info">
+    💡 <strong>Instrucciones:</strong> Edita directamente en la tabla. 
+    Días: 0-7 para permanentes, 0-6 para eventuales. 
+    Bono ✓ = séptimo día (automático si trabajó completo). 
+    Horas Extras: columna "HE Real" para pago (valor fijo), "HE Fiscal" para ISR (máx 9 dobles).
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3>Incidencias — <span id="label-tipo">Todos los trabajadores</span></h3>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-outline btn-xs" onclick="autocompletarPermanentes()">⚡ Autocompletar Permanentes</button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table id="tabla-captura">
+        <thead><tr>
+          <th style="width:30px">#</th>
+          <th style="min-width:160px">Nombre</th>
+          <th>Tipo</th>
+          <th>Área</th>
+          <th>Puesto</th>
+          <th class="num">SD Real</th>
+          <th class="num">SBC</th>
+          <th class="num" style="background:#2d6a9f">Días<br>Trab</th>
+          <th class="num" style="background:#2d6a9f">Incap</th>
+          <th class="cen" style="background:#2d6a9f">Bono</th>
+          <th class="num" style="background:#2d6a9f">HE<br>Real</th>
+          <th class="num" style="background:#2d6a9f">HE<br>Fiscal</th>
+          <th class="num" style="background:#2d6a9f">Días<br>Vac</th>
+          <th class="num" style="background:#2d6a9f">Despensa</th>
+          <th class="num" style="background:#2d6a9f">Compens.</th>
+          <th>Observación</th>
+        </tr></thead>
+        <tbody id="tbody-captura"></tbody>
+      </table>
+    </div>
+  </div>`;
+
+  renderCaptura(incs);
+}
+
+function renderCaptura(incs) {
+  const tbody = $('tbody-captura');
+  if (!tbody) return;
+  tbody.innerHTML = incs.map((inc, i) => `
+  <tr class="${i%2?'alt':''}" id="row-${inc.id}">
+    <td class="cen" style="color:var(--gris);font-size:10px">${i+1}</td>
+    <td><span class="dot dot-${inc.calculado?'verde':'gris'}"></span>${inc.nombre_completo}</td>
+    <td class="cen"><span class="badge ${inc.tipo_trabajador==='PERMANENTE'?'badge-azul':'badge-gris'}" style="font-size:10px">${inc.tipo_trabajador==='PERMANENTE'?'PERM':'EVEN'}</span></td>
+    <td style="font-size:10px;color:var(--gris)">${inc.area_funcional||''}</td>
+    <td style="font-size:10px">${inc.puesto||''}</td>
+    <td class="num">${fmtM(inc.salario_dia_real)}</td>
+    <td class="num">${fmtM(inc.sbc_dia)}</td>
+    <td class="cen"><input class="inp-cell" type="number" min="0" max="7" step="1" value="${inc.dias_trabajados}" data-id="${inc.id}" data-campo="dias_trabajados" style="width:44px" onchange="marcarCambio(${inc.id})"></td>
+    <td class="cen"><input class="inp-cell" type="number" min="0" max="7" step="1" value="${inc.dias_incapacidad}" data-id="${inc.id}" data-campo="dias_incapacidad" style="width:44px" onchange="marcarCambio(${inc.id})"></td>
+    <td class="cen"><input type="checkbox" class="ck" ${inc.tiene_bono?'checked':''} data-id="${inc.id}" data-campo="tiene_bono" onchange="marcarCambio(${inc.id})"></td>
+    <td class="cen"><input class="inp-cell" type="number" min="0" step="0.5" value="${inc.horas_extras_reales||0}" data-id="${inc.id}" data-campo="horas_extras_reales" style="width:48px" onchange="marcarCambio(${inc.id})"></td>
+    <td class="cen"><input class="inp-cell" type="number" min="0" max="9" step="0.5" value="${inc.horas_extras_fiscales||0}" data-id="${inc.id}" data-campo="horas_extras_fiscales" style="width:48px" onchange="marcarCambio(${inc.id})"></td>
+    <td class="cen"><input class="inp-cell" type="number" min="0" max="30" step="1" value="${inc.vacaciones_dias||0}" data-id="${inc.id}" data-campo="vacaciones_dias" style="width:44px" onchange="marcarCambio(${inc.id})"></td>
+    <td class="cen"><input class="inp-cell" type="number" min="0" step="0.01" value="${inc.despensa||0}" data-id="${inc.id}" data-campo="despensa" style="width:60px" onchange="marcarCambio(${inc.id})"></td>
+    <td class="cen"><input class="inp-cell" type="number" min="0" step="0.01" value="${inc.compensacion||0}" data-id="${inc.id}" data-campo="compensacion" style="width:60px" onchange="marcarCambio(${inc.id})"></td>
+    <td><input class="inp-cell" type="text" value="${inc.observacion||''}" data-id="${inc.id}" data-campo="observacion" style="width:120px;text-align:left" onchange="marcarCambio(${inc.id})"></td>
+  </tr>`).join('');
+}
+
+const cambiosPendientes = new Set();
+function marcarCambio(id) { cambiosPendientes.add(id); }
+
+function filtrarCaptura() {
+  const q = ($('buscar-inc')?.value || '').toUpperCase();
+  const tipo = $('filtro-tipo')?.value || '';
+  const filtradas = state.incidencias.filter(i =>
+    (!q || i.nombre_completo.includes(q) || (i.nss||'').includes(q)) &&
+    (!tipo || i.tipo_trabajador === tipo)
+  );
+  renderCaptura(filtradas);
+}
+
+async function guardarCapturaMasiva() {
+  const lote = [];
+  document.querySelectorAll('.inp-cell[data-id], input[type=checkbox][data-id]').forEach(inp => {
+    const id = parseInt(inp.dataset.id);
+    const campo = inp.dataset.campo;
+    if (!cambiosPendientes.has(id) && !inp.classList.contains('ck')) return;
+    let val = inp.type === 'checkbox' ? inp.checked : (inp.type==='number' ? +inp.value : inp.value);
+    let entry = lote.find(e => e.id === id);
+    if (!entry) { entry = {id}; lote.push(entry); }
+    entry[campo] = val;
+  });
+  if (!lote.length) { toast('No hay cambios pendientes', 'info'); return; }
+  try {
+    const r = await api('/api/incidencias/lote', 'PUT', lote);
+    cambiosPendientes.clear();
+    toast(`${r.actualizados} incidencias guardadas`, 'success');
+  } catch(e) { toast(e.message, 'danger'); }
+}
+
+function autocompletarPermanentes() {
+  document.querySelectorAll('#tbody-captura tr').forEach(row => {
+    const tipo = row.querySelector('.badge')?.textContent;
+    if (tipo !== 'PERM') return;
+    const diasInp = row.querySelector('[data-campo="dias_trabajados"]');
+    const bonoInp = row.querySelector('[data-campo="tiene_bono"]');
+    if (diasInp && !diasInp.value) {
+      diasInp.value = 7;
+      const id = parseInt(diasInp.dataset.id);
+      cambiosPendientes.add(id);
+    }
+    if (bonoInp) {
+      bonoInp.checked = true;
+      cambiosPendientes.add(parseInt(bonoInp.dataset.id));
+    }
+  });
+  toast('Permanentes autocompletados — recuerda guardar', 'info');
+}
+
+// ─────────────────────────────────────────────
+// PÁGINA: PRENÓMINA
+// ─────────────────────────────────────────────
+async function pagePrenomina() {
+  if (!state.periodoActivo) {
+    $('content').innerHTML = '<div class="alert alert-warning">⚠️ Selecciona un período primero.</div>';
+    return;
+  }
+  $('content').innerHTML = '<div class="spinner"></div>';
+  const periodo = await api(`/api/periodos/${state.periodoActivo}`);
+
+  $('topbar-actions').innerHTML = `
+    <button class="btn btn-warning btn-sm" onclick="calcularNomina()">🧮 Calcular Prenómina</button>
+    <button class="btn btn-primary btn-sm" onclick="exportarNomina('PERMANENTE')">⬇️ Excel Permanentes</button>
+    <button class="btn btn-primary btn-sm" onclick="exportarNomina('EVENTUAL')">⬇️ Excel Eventuales</button>
+    <button class="btn btn-outline btn-sm" onclick="exportarNomina('TODOS')">⬇️ Excel Todos</button>
+  `;
+
+  $('content').innerHTML = `
+  <div class="card" style="margin-bottom:8px">
+    <div class="card-body" style="padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+      <strong>Semana ${periodo.num_semana}/${periodo.anio}</strong>
+      <span>📅 ${periodo.fecha_inicio} → ${periodo.fecha_fin}</span>
+      <span>💳 Pago: <strong>${periodo.fecha_pago}</strong></span>
+      <span>UMA: <strong>$${periodo.uma_vigente}</strong></span>
+      <span>SE Decreto: <strong>$${periodo.se_decreto}/mes</strong></span>
+      <span class="badge ${periodo.estatus==='CERRADO'?'badge-verde':periodo.estatus==='CALCULADO'?'badge-azul':'badge-gris'}">${periodo.estatus}</span>
+    </div>
+  </div>
+
+  <div id="resumen-bloque"></div>
+
+  <div class="tabs" id="tabs-prenomina">
+    <div class="tab active" onclick="tabPrenomina('todos')">📋 Todos</div>
+    <div class="tab" onclick="tabPrenomina('permanente')">🔵 Permanentes</div>
+    <div class="tab" onclick="tabPrenomina('eventual')">⚪ Eventuales</div>
+    <div class="tab" onclick="tabPrenomina('diferencias')">💵 Diferencias</div>
+  </div>
+  <div id="tab-content-prenomina"></div>`;
+
+  await cargarResumenPrenomina();
+  tabPrenomina('todos');
+}
+
+async function cargarResumenPrenomina() {
+  try {
+    const r = await api(`/api/periodos/${state.periodoActivo}/resumen`);
+    const bloq = $('resumen-bloque');
+    if (!bloq) return;
+    bloq.innerHTML = `
+    <div class="stats-row">
+      <div class="stat"><label>Total Trabajadores</label><div class="val">${r.total.trabajadores}</div></div>
+      <div class="stat verde"><label>Neto Fiscal Total</label><div class="val">${fmtM(r.total.neto_fiscal)}</div></div>
+      <div class="stat rojo"><label>Diferencia Efectivo</label><div class="val">${fmtM(r.total.diferencia)}</div></div>
+      <div class="stat"><label>Cuota Obrera IMSS</label><div class="val">${fmtM(r.total.cuota_obrera)}</div></div>
+      <div class="stat"><label>ISR Neto</label><div class="val">${fmtM(r.total.isr_neto)}</div></div>
+      <div class="stat naranja"><label>Sin Calcular</label><div class="val">${r.total.sin_calcular}</div></div>
+    </div>`;
+  } catch(e) {}
+}
+
+async function calcularNomina() {
+  const btn = document.querySelector('[onclick="calcularNomina()"]');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Calculando...'; }
+  try {
+    const r = await api(`/api/periodos/${state.periodoActivo}/calcular`, 'POST');
+    toast(`✅ ${r.procesados} trabajadores calculados. Fiscal: ${fmtM(r.resumen.total_fiscal)} | Efectivo: ${fmtM(r.resumen.total_diferencia)}`, 'success');
+    await cargarResumenPrenomina();
+    tabPrenomina('todos');
+    if (r.errores.length) toast('⚠️ Errores: ' + r.errores.slice(0,3).join(' | '), 'danger');
+  } catch(e) { toast(e.message, 'danger'); }
+  finally { if (btn) { btn.disabled = false; btn.innerHTML = '🧮 Calcular Prenómina'; } }
+}
+
+async function tabPrenomina(tab) {
+  document.querySelectorAll('#tabs-prenomina .tab').forEach((t,i) => {
+    t.classList.toggle('active', ['todos','permanente','eventual','diferencias'][i] === tab);
+  });
+  const cont = $('tab-content-prenomina');
+  if (!cont) return;
+
+  const tipo = tab === 'permanente' ? 'PERMANENTE' : tab === 'eventual' ? 'EVENTUAL' : '';
+  let url = `/api/periodos/${state.periodoActivo}/incidencias`;
+  if (tipo) url += `?tipo=${tipo}`;
+
+  cont.innerHTML = '<div class="spinner"></div>';
+  const incs = await api(url);
+
+  if (tab === 'diferencias') {
+    const conDif = incs.filter(i => i.diferencia > 0);
+    cont.innerHTML = `
+    <div class="card">
+      <div class="card-header"><h3>Diferencias a pagar en efectivo — ${conDif.length} trabajadores</h3></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr>
+          <th>Nombre</th><th>Tipo</th><th>Área</th>
+          <th class="num">Neto Fiscal</th><th class="num">Neto Real</th>
+          <th class="num" style="background:var(--rojo)">Diferencia</th>
+          <th>Forma Pago</th>
+        </tr></thead>
+        <tbody>
+        ${conDif.map((i,idx) => `
+        <tr class="${idx%2?'alt':''}">
+          <td>${i.nombre_completo}</td>
+          <td class="cen"><span class="badge ${i.tipo_trabajador==='PERMANENTE'?'badge-azul':'badge-gris'}" style="font-size:10px">${i.tipo_trabajador[0]}</span></td>
+          <td style="font-size:10px">${i.area_funcional||''}</td>
+          <td class="num">${fmtM(i.neto_fiscal)}</td>
+          <td class="num">${fmtM(i.neto_real)}</td>
+          <td class="num" style="font-weight:700;color:var(--rojo)">${fmtM(i.diferencia)}</td>
+          <td class="cen">EFECTIVO</td>
+        </tr>`).join('')}
+        </tbody>
+        <tfoot class="tbl-footer"><tr>
+          <td colspan="3">TOTAL</td>
+          <td class="num">${fmtM(conDif.reduce((s,i)=>s+i.neto_fiscal,0))}</td>
+          <td class="num">${fmtM(conDif.reduce((s,i)=>s+i.neto_real,0))}</td>
+          <td class="num">${fmtM(conDif.reduce((s,i)=>s+i.diferencia,0))}</td>
+          <td></td>
+        </tr></tfoot>
+      </table></div>
+    </div>`;
+    return;
+  }
+
+  cont.innerHTML = `
+  <div class="card">
+    <div class="card-body" style="padding:8px">
+    <div class="tbl-wrap" style="max-height:60vh;overflow-y:auto">
+    <table>
+      <thead><tr>
+        <th style="width:22px">#</th>
+        <th style="min-width:150px">Nombre</th>
+        <th>Puesto</th>
+        <th class="num">Días</th>
+        <th class="num">Sueldo</th>
+        <th class="num">Bono</th>
+        <th class="num">Vac</th>
+        <th class="num">HE</th>
+        <th class="num">Prima Vac</th>
+        <th class="num">Suma</th>
+        <th class="num">IMSS</th>
+        <th class="num">ISR</th>
+        <th class="num">SubEmp</th>
+        <th class="num">InfoNav</th>
+        <th class="num">Deduc</th>
+        <th class="num" style="background:var(--verde)">Neto Fiscal</th>
+        <th class="num" style="background:var(--rojo-clr);color:var(--rojo)">Diferencia</th>
+      </tr></thead>
+      <tbody>
+      ${incs.map((i,idx) => `
+      <tr class="${idx%2?'alt':''}" style="${!i.calculado?'opacity:.5':''}">
+        <td class="cen" style="color:var(--gris);font-size:10px">${idx+1}</td>
+        <td>
+          <span class="dot dot-${i.calculado?'verde':'gris'}"></span>
+          <span style="font-size:11px">${i.nombre_completo}</span>
+        </td>
+        <td style="font-size:10px;color:var(--gris)">${i.puesto||''}</td>
+        <td class="num">${i.dias_trabajados - i.dias_incapacidad}</td>
+        <td class="num">${fmtM(i.sueldo_fiscal)}</td>
+        <td class="num">${fmtM(i.bono_fiscal)}</td>
+        <td class="num">${fmtM(i.vacaciones_fiscal)}</td>
+        <td class="num">${fmtM(i.hrs_extra_fiscal)}</td>
+        <td class="num">${fmtM(i.prima_vac_fiscal)}</td>
+        <td class="num" style="font-weight:600">${fmtM(i.suma_fiscal)}</td>
+        <td class="num">${fmtM(i.cuota_obrera)}</td>
+        <td class="num">${fmtM(i.isr_calcula)}</td>
+        <td class="num" style="color:var(--verde)">${fmtM(i.sub_emp_acre)}</td>
+        <td class="num">${fmtM(i.infonavit)}</td>
+        <td class="num">${fmtM(i.suma_deduc)}</td>
+        <td class="num" style="font-weight:700;color:var(--verde)">${fmtM(i.neto_fiscal)}</td>
+        <td class="num" style="font-weight:700;color:${i.diferencia>0?'var(--rojo)':'var(--gris)'}">${fmtM(i.diferencia)}</td>
+      </tr>`).join('')}
+      </tbody>
+      <tfoot class="tbl-footer"><tr>
+        <td colspan="9">TOTALES — ${incs.filter(i=>i.calculado).length} trabajadores</td>
+        <td class="num">${fmtM(incs.reduce((s,i)=>s+i.suma_fiscal,0))}</td>
+        <td class="num">${fmtM(incs.reduce((s,i)=>s+i.cuota_obrera,0))}</td>
+        <td class="num">${fmtM(incs.reduce((s,i)=>s+i.isr_calcula,0))}</td>
+        <td class="num">${fmtM(incs.reduce((s,i)=>s+i.sub_emp_acre,0))}</td>
+        <td class="num">${fmtM(incs.reduce((s,i)=>s+i.infonavit,0))}</td>
+        <td class="num">${fmtM(incs.reduce((s,i)=>s+i.suma_deduc,0))}</td>
+        <td class="num">${fmtM(incs.reduce((s,i)=>s+i.neto_fiscal,0))}</td>
+        <td class="num">${fmtM(incs.reduce((s,i)=>s+i.diferencia,0))}</td>
+      </tr></tfoot>
+    </table></div>
+    </div>
+  </div>`;
+}
+
+function exportarNomina(tipo) {
+  window.location.href = `/api/periodos/${state.periodoActivo}/exportar?tipo=${tipo}`;
+}
+
+// ─────────────────────────────────────────────
+// PÁGINA: TRABAJADORES
+// ─────────────────────────────────────────────
+async function pageTrabajadores() {
+  $('content').innerHTML = '<div class="spinner"></div>';
+  $('topbar-actions').innerHTML = `
+    <input type="text" id="buscar-trab" placeholder="🔍 Buscar..." style="border:1px solid #ccc;border-radius:5px;padding:5px 10px;font-size:12px;width:200px" oninput="filtrarTrabajadores()">
+    <select id="filtro-trab-tipo" onchange="filtrarTrabajadores()" style="border:1px solid #ccc;border-radius:5px;padding:5px;font-size:12px">
+      <option value="ALTA">Activos</option><option value="">Todos</option><option value="BAJA">Bajas</option>
+    </select>
+  `;
+
+  const trabas = await api('/api/trabajadores?estatus=ALTA');
+  state.trabajadores = trabas;
+  renderTrabajadores(trabas);
+}
+
+function renderTrabajadores(trabas) {
+  $('content').innerHTML = `
+  <div class="card">
+    <div class="card-header">
+      <h3>Catálogo de Trabajadores — ${trabas.length} registros</h3>
+    </div>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>NSS</th><th>Nombre</th><th>Tipo</th><th>Área</th><th>Puesto</th>
+        <th class="num">SD Real</th><th class="num">SBC</th><th class="num">HE</th>
+        <th>Banco</th><th>Estatus</th><th>Acciones</th>
+      </tr></thead>
+      <tbody>
+      ${trabas.map((t,i) => `
+      <tr class="${i%2?'alt':''}">
+        <td style="font-family:monospace;font-size:11px">${t.imss}</td>
+        <td>${t.nombre_completo}</td>
+        <td class="cen"><span class="badge ${t.tipo_trabajador==='PERMANENTE'?'badge-azul':'badge-gris'}" style="font-size:10px">${t.tipo_trabajador==='PERMANENTE'?'PERM':'EVEN'}</span></td>
+        <td style="font-size:10px;color:var(--gris)">${t.area_funcional||''}</td>
+        <td style="font-size:10px">${t.puesto||''}</td>
+        <td class="num">${fmtM(t.salario_dia_real)}</td>
+        <td class="num">${fmtM(t.sbc_dia)}</td>
+        <td class="num">${t.costo_hr_extra}</td>
+        <td style="font-size:10px">${t.banco||''}</td>
+        <td class="cen"><span class="badge ${t.estatus==='ALTA'?'badge-verde':'badge-rojo'}" style="font-size:10px">${t.estatus}</span></td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-outline btn-xs" onclick="editarTrabajador(${t.id})">✏️</button>
+          <button class="btn btn-danger btn-xs" onclick="bajaModal(${t.id},'${t.nombre_completo}')">📤</button>
+        </td>
+      </tr>`).join('')}
+      </tbody>
+    </table></div>
+  </div>`;
+}
+
+async function filtrarTrabajadores() {
+  const q = ($('buscar-trab')?.value || '').toUpperCase();
+  const estatus = $('filtro-trab-tipo')?.value || 'ALTA';
+  const trabas = await api(`/api/trabajadores?estatus=${estatus}${q?'&q='+encodeURIComponent(q):''}`);
+  renderTrabajadores(trabas);
+}
+
+async function editarTrabajador(id) {
+  const t = await api(`/api/trabajadores/${id}`);
+  showModal(`Editar: ${t.nombre_completo}`, `
+  <div class="form-grid">
+    <div class="form-group"><label>NSS</label><input value="${t.imss}" disabled style="background:#f5f5f5"></div>
+    <div class="form-group"><label>RFC</label><input id="e-rfc" value="${t.rfc||''}"></div>
+    <div class="form-group"><label>Apellido Paterno</label><input id="e-apepat" value="${t.apellido_pat||''}"></div>
+    <div class="form-group"><label>Apellido Materno</label><input id="e-apemat" value="${t.apellido_mat||''}"></div>
+    <div class="form-group"><label>Nombre(s)</label><input id="e-nombre" value="${t.nombre||''}"></div>
+    <div class="form-group"><label>Tipo</label>
+      <select id="e-tipo"><option ${t.tipo_trabajador==='PERMANENTE'?'selected':''}>PERMANENTE</option><option ${t.tipo_trabajador==='EVENTUAL'?'selected':''}>EVENTUAL</option></select></div>
+    <div class="form-group"><label>Área Funcional</label><input id="e-area" value="${t.area_funcional||''}"></div>
+    <div class="form-group"><label>Puesto</label><input id="e-puesto" value="${t.puesto||''}"></div>
+    <div class="form-group"><label>SD Real (diario)</label><input id="e-sdreal" type="number" step="0.01" value="${t.salario_dia_real||0}"></div>
+    <div class="form-group"><label>SBC Diario (IMSS)</label><input id="e-sbc" type="number" step="0.01" value="${t.sbc_dia||0}"></div>
+    <div class="form-group"><label>Factor Integración</label><input id="e-fi" type="number" step="0.0001" value="${t.factor_integracion||1.0493}"></div>
+    <div class="form-group"><label>Costo HR Extra ($)</label><input id="e-he" type="number" step="1" value="${t.costo_hr_extra||30}"></div>
+    <div class="form-group"><label>Banco</label><input id="e-banco" value="${t.banco||''}"></div>
+    <div class="form-group"><label>Núm. Cuenta</label><input id="e-cta" value="${t.num_cuenta||''}"></div>
+    <div class="form-group"><label>Núm. Tarjeta</label><input id="e-tar" value="${t.num_tarjeta||''}"></div>
+    <div class="form-group"><label>Forma de Pago</label>
+      <select id="e-fpago"><option ${t.forma_pago==='TARJETA'?'selected':''}>TARJETA</option><option ${t.forma_pago==='EFECTIVO'?'selected':''}>EFECTIVO</option></select></div>
+    <div class="form-group"><label>Crédito INFONAVIT</label><input id="e-infon" type="number" step="0.01" value="${t.credito_infonavit||0}"></div>
+  </div>
+  `, async () => {
+    try {
+      await api(`/api/trabajadores/${id}`, 'PUT', {
+        rfc:$('e-rfc').value, apellido_pat:$('e-apepat').value,
+        apellido_mat:$('e-apemat').value, nombre:$('e-nombre').value,
+        tipo_trabajador:$('e-tipo').value, area_funcional:$('e-area').value,
+        puesto:$('e-puesto').value, salario_dia_real:+$('e-sdreal').value,
+        sbc_dia:+$('e-sbc').value, factor_integracion:+$('e-fi').value,
+        costo_hr_extra:+$('e-he').value, banco:$('e-banco').value,
+        num_cuenta:$('e-cta').value, num_tarjeta:$('e-tar').value,
+        forma_pago:$('e-fpago').value, credito_infonavit:+$('e-infon').value,
+      });
+      closeModal(); toast('Trabajador actualizado', 'success');
+      pageTrabajadores();
+    } catch(e) { toast(e.message, 'danger'); }
+  });
+}
+
+function bajaModal(id, nombre) {
+  showModal(`Dar de Baja: ${nombre}`, `
+  <div class="alert alert-warning">⚠️ Esta acción marcará al trabajador como inactivo en el sistema.</div>
+  <div class="form-grid">
+    <div class="form-group"><label>Fecha de Baja</label><input id="b-fecha" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
+    <div class="form-group"><label>Tipo de Baja</label>
+      <select id="b-tipo"><option>RENUNCIA VOLUNTARIA</option><option>ABANDONO DE TRABAJO</option><option>TERMINO DE CONTRATO</option><option>AUSENTISMO</option><option>DEFUNCION</option><option>OTRO</option></select></div>
+    <div class="form-group" style="grid-column:span 2"><label>Motivo / Observaciones</label><textarea id="b-motivo" rows="2" style="border:1px solid #ccc;border-radius:5px;padding:7px;font-size:12px;width:100%"></textarea></div>
+  </div>
+  `, async () => {
+    try {
+      const r = await api(`/api/trabajadores/${id}/baja`, 'POST', {
+        fecha_baja:$('b-fecha').value, tipo_baja:$('b-tipo').value, motivo:$('b-motivo').value
+      });
+      closeModal(); toast(r.mensaje, 'success'); pageTrabajadores();
+    } catch(e) { toast(e.message, 'danger'); }
+  }, { btnLabel:'Confirmar Baja', btnClass:'btn-danger' });
+}
+
+// ─────────────────────────────────────────────
+// PÁGINA: ALTAS / BAJAS
+// ─────────────────────────────────────────────
+function pageAltas() {
+  $('topbar-actions').innerHTML = `<button class="btn btn-primary btn-sm" onclick="modalNuevoTrabajador()">+ Alta Nuevo Trabajador</button>`;
+  
+  $('content').innerHTML = `
+  <div class="tabs">
+    <div class="tab active" onclick="this.classList.add('active');document.getElementById('tab-alta').classList.add('active');document.getElementById('tab-importar').classList.remove('active');this.parentNode.querySelectorAll('.tab').forEach((t,i)=>i&&t.classList.remove('active'))">➕ Alta Individual</div>
+    <div class="tab" onclick="this.classList.add('active');document.getElementById('tab-importar').classList.add('active');document.getElementById('tab-alta').classList.remove('active');this.parentNode.querySelectorAll('.tab').forEach((t,i)=>!i&&t.classList.remove('active'))">📂 Importar desde Excel</div>
+  </div>
+
+  <div id="tab-alta" class="tab-content active">
+    <div class="card">
+      <div class="card-header"><h3>Registrar Nuevo Trabajador</h3></div>
+      <div class="card-body">
+        <div class="form-grid" id="form-alta">
+          <div class="form-group"><label>NSS *</label><input id="a-imss" placeholder="12 dígitos"></div>
+          <div class="form-group"><label>RFC</label><input id="a-rfc"></div>
+          <div class="form-group"><label>CURP</label><input id="a-curp"></div>
+          <div class="form-group"><label>Apellido Paterno *</label><input id="a-apepat"></div>
+          <div class="form-group"><label>Apellido Materno</label><input id="a-apemat"></div>
+          <div class="form-group"><label>Nombre(s) *</label><input id="a-nombre"></div>
+          <div class="form-group"><label>Tipo de Trabajador</label>
+            <select id="a-tipo"><option>EVENTUAL</option><option>PERMANENTE</option></select></div>
+          <div class="form-group"><label>Área Funcional</label><input id="a-area"></div>
+          <div class="form-group"><label>Puesto</label><input id="a-puesto"></div>
+          <div class="form-group"><label>Fecha Ingreso Real</label><input id="a-fingreal" type="date"></div>
+          <div class="form-group"><label>Fecha Ingreso IMSS</label><input id="a-fingimss" type="date"></div>
+          <div class="form-group"><label>SD Real (diario) *</label><input id="a-sdreal" type="number" step="0.01" placeholder="315.04"></div>
+          <div class="form-group"><label>SBC Diario (IMSS) *</label><input id="a-sbc" type="number" step="0.01" placeholder="331.18"></div>
+          <div class="form-group"><label>Factor Integración</label><input id="a-fi" type="number" step="0.0001" value="1.0493"></div>
+          <div class="form-group"><label>Costo HR Extra ($)</label>
+            <select id="a-he"><option value="30">$30</option><option value="35">$35</option><option value="40">$40</option><option value="60">$60</option></select></div>
+          <div class="form-group"><label>Banco</label><input id="a-banco" value="BANCOMER"></div>
+          <div class="form-group"><label>Núm. Cuenta</label><input id="a-cta"></div>
+          <div class="form-group"><label>Núm. Tarjeta</label><input id="a-tar"></div>
+          <div class="form-group"><label>Forma de Pago</label>
+            <select id="a-fpago"><option>TARJETA</option><option>EFECTIVO</option></select></div>
+          <div class="form-group"><label>Crédito INFONAVIT</label><input id="a-infon" type="number" step="0.01" value="0"></div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:8px">
+          <button class="btn btn-success" onclick="crearTrabajador()">✅ Registrar Trabajador</button>
+          <button class="btn btn-outline" onclick="limpiarFormAlta()">🗑️ Limpiar</button>
+        </div>
+        <div id="alta-resultado"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-importar" class="tab-content">
+    <div class="card">
+      <div class="card-header"><h3>Importar desde BDA Mega Fresh (.xlsb)</h3></div>
+      <div class="card-body">
+        <div class="alert alert-info">📂 Selecciona el archivo <strong>1_1_BDA_MEGA_FRESH_P_V2_O.xlsb</strong> para importar todos los trabajadores con estatus ALTA.</div>
+        <div class="form-group" style="max-width:400px">
+          <label>Archivo Excel (.xlsb)</label>
+          <input type="file" id="file-bda" accept=".xlsb,.xlsx,.xlsm">
+        </div>
+        <button class="btn btn-primary" style="margin-top:12px" onclick="importarBDA()">📥 Importar</button>
+        <div id="import-resultado"></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function crearTrabajador() {
+  const res = $('alta-resultado');
+  try {
+    const r = await api('/api/trabajadores', 'POST', {
+      imss:$('a-imss').value.trim(),
+      rfc:$('a-rfc').value.trim(),
+      curp:$('a-curp').value.trim(),
+      apellido_pat:$('a-apepat').value.trim(),
+      apellido_mat:$('a-apemat').value.trim(),
+      nombre:$('a-nombre').value.trim(),
+      tipo_trabajador:$('a-tipo').value,
+      area_funcional:$('a-area').value.trim(),
+      puesto:$('a-puesto').value.trim(),
+      fecha_ingreso_real:$('a-fingreal').value,
+      fecha_ingreso_imss:$('a-fingimss').value,
+      salario_dia_real:+$('a-sdreal').value,
+      sbc_dia:+$('a-sbc').value,
+      factor_integracion:+$('a-fi').value,
+      costo_hr_extra:+$('a-he').value,
+      banco:$('a-banco').value,
+      num_cuenta:$('a-cta').value.trim(),
+      num_tarjeta:$('a-tar').value.trim(),
+      forma_pago:$('a-fpago').value,
+      credito_infonavit:+$('a-infon').value,
+    });
+    res.innerHTML = `<div class="alert alert-success" style="margin-top:12px">✅ <strong>${r.nombre_completo}</strong> registrado con NSS ${r.imss}</div>`;
+    limpiarFormAlta();
+  } catch(e) {
+    res.innerHTML = `<div class="alert alert-danger" style="margin-top:12px">❌ ${e.message}</div>`;
+  }
+}
+
+function limpiarFormAlta() {
+  ['a-imss','a-rfc','a-curp','a-apepat','a-apemat','a-nombre','a-area','a-puesto','a-cta','a-tar'].forEach(id => {
+    const el = $(id); if (el) el.value = '';
+  });
+  $('alta-resultado') && ($('alta-resultado').innerHTML = '');
+}
+
+async function importarBDA() {
+  const fileInput = $('file-bda');
+  const res = $('import-resultado');
+  if (!fileInput.files.length) { toast('Selecciona un archivo', 'warning'); return; }
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+  res.innerHTML = '<div class="alert alert-info">⏳ Importando... puede tomar unos segundos.</div>';
+  try {
+    const r = await fetch('/api/trabajadores/importar', {method:'POST', body: formData});
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error);
+    res.innerHTML = `<div class="alert alert-success">
+      ✅ Importación completada:<br>
+      • <strong>${data.creados}</strong> trabajadores nuevos<br>
+      • <strong>${data.actualizados}</strong> actualizados<br>
+      ${data.errores.length ? `• ⚠️ ${data.errores.length} errores: ${data.errores.slice(0,3).join(', ')}` : ''}
+    </div>`;
+  } catch(e) {
+    res.innerHTML = `<div class="alert alert-danger">❌ ${e.message}</div>`;
+  }
+}
+
+// ─────────────────────────────────────────────
+// MODAL GENÉRICO
+// ─────────────────────────────────────────────
+let modalCallback = null;
+function showModal(title, body, onConfirm, opts={}) {
+  modalCallback = onConfirm;
+  const btnLabel = opts.btnLabel || 'Guardar';
+  const btnClass = opts.btnClass || 'btn-primary';
+  const existing = document.querySelector('.overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+  <div class="modal">
+    <div class="modal-header">
+      <h3>${title}</h3>
+      <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">${body}</div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      <button class="btn ${btnClass}" onclick="modalCallback && modalCallback()">${btnLabel}</button>
+    </div>
+  </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  document.body.appendChild(overlay);
+}
+function closeModal() {
+  const overlay = document.querySelector('.overlay');
+  if (overlay) overlay.remove();
+  modalCallback = null;
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => showPage('dashboard'));
+</script>
+</body>
+</html>
