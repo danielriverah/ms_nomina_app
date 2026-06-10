@@ -4,6 +4,8 @@ Flask web application
 """
 import os, json
 import traceback
+import logging
+from logging.handlers import RotatingFileHandler
 from datetime import date, datetime, timedelta
 from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for
 import pandas as pd
@@ -42,9 +44,52 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "mfp-nomina-2026-dev")
 app.config["SQLALCHEMY_DATABASE_URI"] = build_database_uri()
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["JSON_SORT_KEYS"] = False
 db.init_app(app)
 app.config["DB_INIT_ERROR"] = None
 app.config["DB_INIT_ERROR_SHORT"] = None
+app.config["START_TIME"] = datetime.utcnow()
+
+log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
+app.logger.setLevel(getattr(logging, log_level, logging.INFO))
+if not app.logger.handlers:
+    log_path = os.environ.get("APP_LOG_FILE", "nomina_app.log")
+    handler = RotatingFileHandler(log_path, maxBytes=2_000_000, backupCount=3)
+    handler.setLevel(getattr(logging, log_level, logging.INFO))
+    handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s %(levelname)s [%(process)d] %(message)s"
+        )
+    )
+    app.logger.addHandler(handler)
+    app.logger.propagate = False
+
+@app.before_request
+def log_request_start():
+    request._start_time = datetime.utcnow()
+    app.logger.info("START %s %s", request.method, request.path)
+
+
+@app.after_request
+def log_request_end(response):
+    elapsed_ms = 0
+    if hasattr(request, "_start_time"):
+        elapsed_ms = int((datetime.utcnow() - request._start_time).total_seconds() * 1000)
+    app.logger.info(
+        "END %s %s %s %sms",
+        request.method,
+        request.path,
+        response.status_code,
+        elapsed_ms,
+    )
+    response.headers["X-Process-Time-ms"] = str(elapsed_ms)
+    return response
+
+
+@app.errorhandler(Exception)
+def handle_unexpected_error(exc):
+    app.logger.exception("UNHANDLED ERROR on %s %s: %s", request.method, request.path, exc)
+    return jsonify({"ok": False, "error": str(exc)}), 500
 
 if os.environ.get("AUTO_CREATE_TABLES", "").strip().lower() in ("1", "true", "yes", "on"):
     with app.app_context():
@@ -634,4 +679,8 @@ def get_puestos():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(
+        debug=os.environ.get("FLASK_DEBUG", "false").lower() in ("1", "true", "yes", "on"),
+        host=os.environ.get("FLASK_HOST", "0.0.0.0"),
+        port=int(os.environ.get("FLASK_PORT", "5000")),
+    )
