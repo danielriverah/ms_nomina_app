@@ -733,6 +733,10 @@ def resumen_periodo(pid):
 
 @app.route("/api/periodos/<int:pid>/exportar", methods=["GET"])
 def exportar_nomina(pid):
+    try:
+        pid = int(pid)
+    except Exception:
+        return jsonify({"ok": False, "error": "Periodo inválido"}), 400
     p = PeriodoNomina.query.get_or_404(pid)
     tipo = request.args.get("tipo", "TODOS")  # PERMANENTE / EVENTUAL / TODOS
 

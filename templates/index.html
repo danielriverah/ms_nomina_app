@@ -758,7 +758,12 @@ async function tabPrenomina(tab) {
 }
 
 function exportarNomina(tipo) {
-  window.location.href = `/api/periodos/${state.periodoActivo}/exportar?tipo=${tipo}`;
+  const pid = parseInt(state.periodoActivo, 10);
+  if (!Number.isInteger(pid)) {
+    toast('Selecciona un período válido antes de exportar', 'warning');
+    return;
+  }
+  window.location.href = `/api/periodos/${pid}/exportar?tipo=${encodeURIComponent(tipo)}`;
 }
 
 // ─────────────────────────────────────────────
