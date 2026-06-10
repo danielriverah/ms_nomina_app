@@ -886,7 +886,10 @@ function bajaModal(id, nombre) {
 // PÁGINA: ALTAS / BAJAS
 // ─────────────────────────────────────────────
 function pageAltas() {
-  $('topbar-actions').innerHTML = `<button class="btn btn-primary btn-sm" onclick="modalNuevoTrabajador()">+ Alta Nuevo Trabajador</button>`;
+  $('topbar-actions').innerHTML = `
+    <button class="btn btn-danger btn-sm" onclick="limpiarTodosTrabajadores()">🧹 Limpiar todos</button>
+    <button class="btn btn-primary btn-sm" onclick="modalNuevoTrabajador()">+ Alta Nuevo Trabajador</button>
+  `;
   
   $('content').innerHTML = `
   <div class="tabs">
@@ -1007,6 +1010,29 @@ async function importarBDA() {
   } catch(e) {
     res.innerHTML = `<div class="alert alert-danger">❌ ${e.message}</div>`;
   }
+}
+
+async function limpiarTodosTrabajadores() {
+  showModal('Limpiar todos los trabajadores', `
+    <div class="alert alert-warning">
+      ⚠️ Esta acción eliminará <strong>todos</strong> los trabajadores y sus incidencias.
+    </div>
+    <p style="font-size:12px;color:var(--gris);margin-top:10px">
+      Escribe <strong>LIMPIAR</strong> para confirmar.
+    </p>
+    <div class="form-group" style="margin-top:10px">
+      <label>Confirmación</label>
+      <input id="confirm-limpiar" placeholder="LIMPIAR">
+    </div>
+  `, async () => {
+    const confirmacion = $('confirm-limpiar').value.trim().toUpperCase();
+    if (confirmacion !== 'LIMPIAR') {
+      throw new Error('Debes escribir LIMPIAR para continuar');
+    }
+    const r = await api('/api/trabajadores/limpiar', 'POST', { confirmado: true });
+    toast(`✅ Se eliminaron ${r.trabajadores_eliminados} trabajadores e ${r.incidencias_eliminadas} incidencias`, 'success');
+    pageTrabajadores();
+  }, { btnLabel:'Eliminar todo', btnClass:'btn-danger' });
 }
 
 // ─────────────────────────────────────────────

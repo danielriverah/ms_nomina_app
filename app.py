@@ -5,6 +5,7 @@ Flask web application
 import os, json
 import traceback
 import logging
+import math
 from logging.handlers import RotatingFileHandler
 from datetime import date, datetime, timedelta
 from flask import Flask, render_template, request, jsonify, send_file, send_from_directory, redirect, url_for
@@ -38,6 +39,61 @@ def build_database_uri():
             return f"mysql+{db_driver}://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
     return os.environ.get("SQLITE_URL", "sqlite:///nomina.db")
+
+
+def _clean_value(value, default=""):
+    if value is None:
+        return default
+    try:
+        if isinstance(value, float) and math.isnan(value):
+            return default
+    except Exception:
+        pass
+    text = str(value).strip()
+    if text.lower() == "nan" or text == "":
+        return default
+    return value
+
+
+def _clean_str(value, default=""):
+    cleaned = _clean_value(value, default)
+    return default if cleaned == default else str(cleaned).strip()
+
+
+def _clean_float(value, default=0.0):
+    cleaned = _clean_value(value, None)
+    if cleaned is None:
+        return default
+    try:
+        return float(cleaned)
+    except Exception:
+        return default
+
+
+def _clean_int(value, default=0):
+    cleaned = _clean_value(value, None)
+    if cleaned is None:
+        return default
+    try:
+        return int(float(cleaned))
+    except Exception:
+        return default
+
+
+def _clean_float_zero(value):
+    return _clean_float(value, 0.0)
+
+
+def _clean_date(value):
+    cleaned = _clean_value(value, None)
+    if cleaned is None:
+        return None
+    if isinstance(cleaned, date):
+        return cleaned
+    try:
+        return pd.to_datetime(cleaned).date()
+    except Exception:
+        return None
 
 
 # ─────────────────────────────────────────────
@@ -273,23 +329,23 @@ def importar_trabajadores():
         actualizados = 0
         errores = []
         for _, row in activos.iterrows():
-            imss = str(row.get("IMSS", "")).strip().replace(".0","")
+            imss = _clean_str(row.get("IMSS", "")).replace(".0", "")
             if not imss or imss == "nan":
                 continue
             try:
                 existing = Trabajador.query.filter_by(imss=imss).first()
-                nombre1 = str(row.get(" NOMBRE 1", "")).strip()
+                nombre1 = _clean_str(row.get(" NOMBRE 1", ""))
                 apellidos = nombre1.split(" ")
                 apepat = apellidos[0] if apellidos else ""
                 apemat = apellidos[1] if len(apellidos) > 1 else ""
                 nombres = " ".join(apellidos[2:]) if len(apellidos) > 2 else nombre1
 
                 if existing:
-                    existing.sbc_dia = float(row.get("SAL. DIARIO IMSS (SD)", 0) or 0)
-                    existing.sdi_dia = float(row.get("SAL. INTEG.", 0) or 0)
-                    existing.factor_integracion = float(row.get("FACT. INTEG.", 1.0493) or 1.0493)
-                    existing.salario_dia_real = float(row.get("SALARIO DIARIO REAL", 0) or 0)
-                    msd = str(row.get("MODIFICACION SDI 2026", "") or "")
+                    existing.sbc_dia = _clean_float_zero(row.get("SAL. DIARIO IMSS (SD)", 0))
+                    existing.sdi_dia = _clean_float_zero(row.get("SAL. INTEG.", 0))
+                    existing.factor_integracion = _clean_float(row.get("FACT. INTEG.", 1.0493), 1.0493)
+                    existing.salario_dia_real = _clean_float_zero(row.get("SALARIO DIARIO REAL", 0))
+                    msd = _clean_str(row.get("MODIFICACION SDI 2026", ""))
                     if msd and msd != "nan":
                         parts = msd.replace("MDS ", "").strip().split()
                         if parts:
@@ -300,37 +356,29 @@ def importar_trabajadores():
                 else:
                     t = Trabajador(
                         imss=imss,
-                        rfc=str(row.get("RFC","") or "").strip(),
-                        curp=str(row.get("CURP","") or "").strip(),
+                        rfc=_clean_str(row.get("RFC", "")),
+                        curp=_clean_str(row.get("CURP", "")),
                         nombre=nombres.upper(),
                         apellido_pat=apepat.upper(),
                         apellido_mat=apemat.upper(),
-                        tipo_trabajador=str(row.get("TIPO DE TRABAJADOR","EVENTUAL") or "EVENTUAL").upper().strip(),
-                        area_funcional=str(row.get("AREAFUNCIONAL","") or "").strip(),
-                        puesto=str(row.get("PUESTO","") or "").strip(),
-                        salario_dia_real=float(row.get("SALARIO DIARIO REAL", 0) or 0),
-                        sbc_dia=float(row.get("SAL. DIARIO IMSS (SD)", 0) or 0),
-                        sdi_dia=float(row.get("SAL. INTEG.", 0) or 0),
-                        factor_integracion=float(row.get("FACT. INTEG.", 1.0493) or 1.0493),
-                        costo_hr_extra=float(row.get("TIEMPO EXTRA AUTRIZADO", 30) or 30),
-                        banco=str(row.get("BANCO","") or "").strip(),
-                        num_cuenta=str(row.get("NUM DE CTA","") or "").replace(".0","").strip(),
-                        num_tarjeta=str(row.get("NUM DE TARJETA","") or "").replace(".0","").strip(),
+                        tipo_trabajador=_clean_str(row.get("TIPO DE TRABAJADOR", "EVENTUAL"), "EVENTUAL").upper(),
+                        area_funcional=_clean_str(row.get("AREAFUNCIONAL", "")),
+                        puesto=_clean_str(row.get("PUESTO", "")),
+                        salario_dia_real=_clean_float_zero(row.get("SALARIO DIARIO REAL", 0)),
+                        sbc_dia=_clean_float_zero(row.get("SAL. DIARIO IMSS (SD)", 0)),
+                        sdi_dia=_clean_float_zero(row.get("SAL. INTEG.", 0)),
+                        factor_integracion=_clean_float(row.get("FACT. INTEG.", 1.0493), 1.0493),
+                        costo_hr_extra=_clean_float_zero(row.get("TIEMPO EXTRA AUTRIZADO", 30)),
+                        banco=_clean_str(row.get("BANCO", "")),
+                        num_cuenta=_clean_str(row.get("NUM DE CTA", "")).replace(".0", ""),
+                        num_tarjeta=_clean_str(row.get("NUM DE TARJETA", "")).replace(".0", ""),
                         forma_pago="TARJETA",
-                        credito_infonavit=float(row.get("CREDITO INFONAVIT", 0) or 0),
-                        factor_infonavit=float(row.get("FACTOR RENT INFONAVIT", 0) or 0),
+                        credito_infonavit=_clean_float_zero(row.get("CREDITO INFONAVIT", 0)),
+                        factor_infonavit=_clean_float_zero(row.get("FACTOR RENT INFONAVIT", 0)),
                         estatus="ALTA",
                     )
-                    if row.get("F. INGRESO REAL") and str(row["F. INGRESO REAL"]) != "nan":
-                        try:
-                            fi = pd.to_datetime(row["F. INGRESO REAL"])
-                            t.fecha_ingreso_real = fi.date()
-                        except: pass
-                    if row.get("F. INGRESO IMSS") and str(row["F. INGRESO IMSS"]) != "nan":
-                        try:
-                            fi = pd.to_datetime(row["F. INGRESO IMSS"])
-                            t.fecha_ingreso_imss = fi.date()
-                        except: pass
+                    t.fecha_ingreso_real = _clean_date(row.get("F. INGRESO REAL"))
+                    t.fecha_ingreso_imss = _clean_date(row.get("F. INGRESO IMSS"))
                     db.session.add(t)
                     creados += 1
             except Exception as e:
@@ -343,7 +391,34 @@ def importar_trabajadores():
             "errores": errores[:20],
         })
     except Exception as e:
+        db.session.rollback()
+        app.logger.exception("ERROR importing workers")
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/trabajadores/limpiar", methods=["POST"])
+def limpiar_trabajadores():
+    data = request.json or {}
+    if not data.get("confirmado"):
+        return jsonify({"error": "Debes confirmar la limpieza total"}), 400
+    try:
+        incidencias_eliminadas = Incidencia.query.delete(synchronize_session=False)
+        trabajadores_eliminados = Trabajador.query.delete(synchronize_session=False)
+        db.session.commit()
+        app.logger.warning(
+            "LIMPIEZA MASIVA trabajadores=%s incidencias=%s",
+            trabajadores_eliminados,
+            incidencias_eliminadas,
+        )
+        return jsonify({
+            "ok": True,
+            "trabajadores_eliminados": trabajadores_eliminados,
+            "incidencias_eliminadas": incidencias_eliminadas,
+        })
+    except Exception as exc:
+        db.session.rollback()
+        app.logger.exception("ERROR cleaning workers")
+        return jsonify({"ok": False, "error": str(exc)}), 500
 
 
 # ──────────────────────────────────────────────────────────────────────────────
