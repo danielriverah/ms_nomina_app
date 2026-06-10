@@ -15,7 +15,7 @@ import io
 
 from dotenv import load_dotenv
 
-from models import db, Trabajador, PeriodoNomina, Incidencia
+from models import db, Trabajador, PeriodoNomina, Incidencia, HistorialMovimiento
 from calculos import calcular_nomina_trabajador, get_decreto_se, UMA_DIA, SM_DIA
 from exportar import generar_nomina_topes
 
@@ -234,12 +234,64 @@ def get_trabajador(tid):
     return jsonify(t.to_dict())
 
 
+@app.route("/api/trabajadores/por-imss/<string:imss>", methods=["GET"])
+def get_trabajador_por_imss(imss):
+    t = Trabajador.query.filter_by(imss=imss).first()
+    if not t:
+        return jsonify({"ok": False, "found": False}), 404
+    historial = (
+        HistorialMovimiento.query
+        .filter_by(trabajador_id=t.trabajador_id)
+        .order_by(HistorialMovimiento.fecha_movimiento.desc(), HistorialMovimiento.historial_movimiento_id.desc())
+        .all()
+    )
+    return jsonify({
+        "ok": True,
+        "found": True,
+        "trabajador": t.to_dict(),
+        "historial": [h.to_dict() for h in historial],
+        "reingreso_posible": t.estatus == "BAJA",
+        "riesgo_reingreso": historial[0].riesgo_reingreso if historial else "NORMAL",
+        "motivo_baja": historial[0].motivo if historial and historial[0].tipo_movimiento == "BAJA" else None,
+        "fecha_baja": t.fecha_baja.isoformat() if t.fecha_baja else None,
+    })
+
+
 @app.route("/api/trabajadores", methods=["POST"])
 def crear_trabajador():
     data = request.json
     # Validar NSS único
     existing = Trabajador.query.filter_by(imss=data.get("imss")).first()
     if existing:
+        if existing.estatus == "BAJA":
+            if data.get("reactivar"):
+                existing.estatus = "ALTA"
+                existing.fecha_baja = None
+                existing.tipo_baja = None
+                existing.observaciones = (existing.observaciones or "") + " | REINGRESO"
+                existing.updated_at = datetime.utcnow()
+                db.session.add(HistorialMovimiento(
+                    trabajador_id=existing.trabajador_id,
+                    tipo_movimiento="REINGRESO",
+                    fecha_movimiento=date.fromisoformat(data["fecha_ingreso_real"]) if data.get("fecha_ingreso_real") else date.today(),
+                    riesgo_reingreso=data.get("riesgo_reingreso", "ALTO").upper(),
+                    motivo=data.get("motivo", "Reingreso"),
+                    creado_por=data.get("usuario", "sistema"),
+                ))
+                db.session.commit()
+                return jsonify({
+                    "ok": True,
+                    "mensaje": f"{existing.nombre_completo} reingresado",
+                    "trabajador": existing.to_dict(),
+                }), 200
+            historial = HistorialMovimiento.query.filter_by(trabajador_id=existing.trabajador_id).order_by(HistorialMovimiento.fecha_movimiento.desc(), HistorialMovimiento.historial_movimiento_id.desc()).first()
+            return jsonify({
+                "error": f"NSS {data['imss']} ya existe y tuvo baja previa",
+                "riesgo_reingreso": historial.riesgo_reingreso if historial else "ALTO",
+                "fecha_baja": existing.fecha_baja.isoformat() if existing.fecha_baja else None,
+                "trabajador_id": existing.trabajador_id,
+                "reingreso_posible": True,
+            }), 409
         return jsonify({"error": f"NSS {data['imss']} ya existe en el sistema"}), 400
 
     t = Trabajador(
@@ -273,6 +325,15 @@ def crear_trabajador():
         t.fecha_ingreso_imss = date.fromisoformat(data["fecha_ingreso_imss"])
 
     db.session.add(t)
+    db.session.commit()
+    db.session.add(HistorialMovimiento(
+        trabajador_id=t.trabajador_id,
+        tipo_movimiento="ALTA",
+        fecha_movimiento=t.fecha_ingreso_real or date.today(),
+        riesgo_reingreso="NORMAL",
+        motivo="Alta inicial",
+        creado_por=data.get("usuario", "sistema"),
+    ))
     db.session.commit()
     return jsonify(t.to_dict()), 201
 
@@ -312,6 +373,14 @@ def dar_baja_trabajador(tid):
     t.fecha_baja = date.fromisoformat(data["fecha_baja"]) if data.get("fecha_baja") else date.today()
     t.observaciones = (t.observaciones or "") + f" | BAJA: {data.get('motivo','')}"
     t.updated_at = datetime.utcnow()
+    db.session.add(HistorialMovimiento(
+        trabajador_id=t.trabajador_id,
+        tipo_movimiento="BAJA",
+        fecha_movimiento=t.fecha_baja or date.today(),
+        riesgo_reingreso=data.get("riesgo_reingreso", "ALTO").upper(),
+        motivo=data.get("motivo", ""),
+        creado_por=data.get("usuario", "sistema"),
+    ))
     db.session.commit()
     return jsonify({"ok": True, "mensaje": f"{t.nombre_completo} dado de baja"})
 

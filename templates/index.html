@@ -902,30 +902,31 @@ function pageAltas() {
       <div class="card-header"><h3>Registrar Nuevo Trabajador</h3></div>
       <div class="card-body">
         <div class="form-grid" id="form-alta">
-          <div class="form-group"><label>NSS *</label><input id="a-imss" placeholder="12 dígitos"></div>
-          <div class="form-group"><label>RFC</label><input id="a-rfc"></div>
-          <div class="form-group"><label>CURP</label><input id="a-curp"></div>
-          <div class="form-group"><label>Apellido Paterno *</label><input id="a-apepat"></div>
-          <div class="form-group"><label>Apellido Materno</label><input id="a-apemat"></div>
-          <div class="form-group"><label>Nombre(s) *</label><input id="a-nombre"></div>
+          <div class="form-group"><label>NSS *</label><input id="a-imss" placeholder="12 dígitos" required onblur="buscarNSSReingreso()"></div>
+          <div class="form-group"><label>RFC *</label><input id="a-rfc" required></div>
+          <div class="form-group"><label>CURP *</label><input id="a-curp" required></div>
+          <div class="form-group"><label>Apellido Paterno *</label><input id="a-apepat" required></div>
+          <div class="form-group"><label>Apellido Materno *</label><input id="a-apemat" required></div>
+          <div class="form-group"><label>Nombre(s) *</label><input id="a-nombre" required></div>
           <div class="form-group"><label>Tipo de Trabajador</label>
             <select id="a-tipo"><option>EVENTUAL</option><option>PERMANENTE</option></select></div>
-          <div class="form-group"><label>Área Funcional</label><input id="a-area"></div>
-          <div class="form-group"><label>Puesto</label><input id="a-puesto"></div>
-          <div class="form-group"><label>Fecha Ingreso Real</label><input id="a-fingreal" type="date"></div>
-          <div class="form-group"><label>Fecha Ingreso IMSS</label><input id="a-fingimss" type="date"></div>
-          <div class="form-group"><label>SD Real (diario) *</label><input id="a-sdreal" type="number" step="0.01" placeholder="315.04"></div>
-          <div class="form-group"><label>SBC Diario (IMSS) *</label><input id="a-sbc" type="number" step="0.01" placeholder="331.18"></div>
-          <div class="form-group"><label>Factor Integración</label><input id="a-fi" type="number" step="0.0001" value="1.0493"></div>
+          <div class="form-group"><label>Área Funcional *</label><input id="a-area" required></div>
+          <div class="form-group"><label>Puesto *</label><input id="a-puesto" required></div>
+          <div class="form-group"><label>Fecha Ingreso Real *</label><input id="a-fingreal" type="date" required></div>
+          <div class="form-group"><label>Fecha Ingreso IMSS *</label><input id="a-fingimss" type="date" required></div>
+          <div class="form-group"><label>SD Real (diario) *</label><input id="a-sdreal" type="number" step="0.01" placeholder="315.04" required></div>
+          <div class="form-group"><label>SBC Diario (IMSS) *</label><input id="a-sbc" type="number" step="0.01" placeholder="331.18" required></div>
+          <div class="form-group"><label>Factor Integración *</label><input id="a-fi" type="number" step="0.0001" value="1.0493" required></div>
           <div class="form-group"><label>Costo HR Extra ($)</label>
             <select id="a-he"><option value="30">$30</option><option value="35">$35</option><option value="40">$40</option><option value="60">$60</option></select></div>
-          <div class="form-group"><label>Banco</label><input id="a-banco" value="BANCOMER"></div>
-          <div class="form-group"><label>Núm. Cuenta</label><input id="a-cta"></div>
-          <div class="form-group"><label>Núm. Tarjeta</label><input id="a-tar"></div>
-          <div class="form-group"><label>Forma de Pago</label>
-            <select id="a-fpago"><option>TARJETA</option><option>EFECTIVO</option></select></div>
-          <div class="form-group"><label>Crédito INFONAVIT</label><input id="a-infon" type="number" step="0.01" value="0"></div>
+          <div class="form-group"><label>Banco *</label><input id="a-banco" value="BANCOMER" required></div>
+          <div class="form-group"><label>Núm. Cuenta *</label><input id="a-cta" required></div>
+          <div class="form-group"><label>Núm. Tarjeta *</label><input id="a-tar" required></div>
+          <div class="form-group"><label>Forma de Pago *</label>
+            <select id="a-fpago" required><option>TARJETA</option><option>EFECTIVO</option></select></div>
+          <div class="form-group"><label>Crédito INFONAVIT *</label><input id="a-infon" type="number" step="0.01" value="0" required></div>
         </div>
+        <div id="reingreso-alerta"></div>
         <div style="margin-top:16px;display:flex;gap:8px">
           <button class="btn btn-success" onclick="crearTrabajador()">✅ Registrar Trabajador</button>
           <button class="btn btn-outline" onclick="limpiarFormAlta()">🗑️ Limpiar</button>
@@ -954,6 +955,7 @@ function pageAltas() {
 async function crearTrabajador() {
   const res = $('alta-resultado');
   try {
+    const reactivar = !!$('a-reactivar')?.checked;
     const r = await api('/api/trabajadores', 'POST', {
       imss:$('a-imss').value.trim(),
       rfc:$('a-rfc').value.trim(),
@@ -975,19 +977,55 @@ async function crearTrabajador() {
       num_tarjeta:$('a-tar').value.trim(),
       forma_pago:$('a-fpago').value,
       credito_infonavit:+$('a-infon').value,
+      reactivar,
+      motivo:$('a-motivo-reingreso')?.value || '',
+      riesgo_reingreso:$('a-riesgo-reingreso')?.value || 'ALTO',
     });
     res.innerHTML = `<div class="alert alert-success" style="margin-top:12px">✅ <strong>${r.nombre_completo}</strong> registrado con NSS ${r.imss}</div>`;
     limpiarFormAlta();
   } catch(e) {
-    res.innerHTML = `<div class="alert alert-danger" style="margin-top:12px">❌ ${e.message}</div>`;
+    if (e.message.includes('tuvo baja previa')) {
+      res.innerHTML = `<div class="alert alert-warning" style="margin-top:12px">⚠️ ${e.message}</div>`;
+    } else {
+      res.innerHTML = `<div class="alert alert-danger" style="margin-top:12px">❌ ${e.message}</div>`;
+    }
   }
 }
 
 function limpiarFormAlta() {
-  ['a-imss','a-rfc','a-curp','a-apepat','a-apemat','a-nombre','a-area','a-puesto','a-cta','a-tar'].forEach(id => {
+  ['a-imss','a-rfc','a-curp','a-apepat','a-apemat','a-nombre','a-area','a-puesto','a-cta','a-tar','a-motivo-reingreso'].forEach(id => {
     const el = $(id); if (el) el.value = '';
   });
   $('alta-resultado') && ($('alta-resultado').innerHTML = '');
+  $('reingreso-alerta') && ($('reingreso-alerta').innerHTML = '');
+}
+
+async function buscarNSSReingreso() {
+  const imss = $('a-imss').value.trim();
+  const cont = $('reingreso-alerta');
+  if (!imss) { cont.innerHTML = ''; return; }
+  try {
+    const r = await api(`/api/trabajadores/por-imss/${encodeURIComponent(imss)}`);
+    if (r.reingreso_posible) {
+      cont.innerHTML = `
+        <div class="alert alert-warning">
+          ⚠️ Este NSS ya tuvo baja previa. Fecha baja: <strong>${r.fecha_baja || 'N/D'}</strong>.
+          Riesgo sugerido: <strong>${r.riesgo_reingreso}</strong>.
+        </div>
+        <div class="form-grid" style="margin-top:10px">
+          <div class="form-group"><label><input type="checkbox" id="a-reactivar"> Reactivar este trabajador</label></div>
+          <div class="form-group"><label>Riesgo de reingreso</label>
+            <select id="a-riesgo-reingreso"><option>ALTO</option><option>MEDIO</option><option>NORMAL</option></select>
+          </div>
+          <div class="form-group" style="grid-column:1/-1"><label>Motivo de reingreso</label><input id="a-motivo-reingreso" placeholder="Recontratación, temporada alta, etc."></div>
+        </div>
+      `;
+    } else {
+      cont.innerHTML = '';
+    }
+  } catch(e) {
+    cont.innerHTML = '';
+  }
 }
 
 async function importarBDA() {

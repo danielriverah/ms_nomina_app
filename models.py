@@ -57,6 +57,7 @@ class Trabajador(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     incidencias = db.relationship("Incidencia", backref="trabajador", lazy=True)
+    historiales = db.relationship("HistorialMovimiento", backref="trabajador", lazy=True)
 
     @property
     def nombre_completo(self):
@@ -91,6 +92,31 @@ class Trabajador(db.Model):
             "fecha_ingreso_real": self.fecha_ingreso_real.isoformat() if self.fecha_ingreso_real else None,
             "fecha_ingreso_imss": self.fecha_ingreso_imss.isoformat() if self.fecha_ingreso_imss else None,
             "vac_del_periodo": self.vac_del_periodo,
+        }
+
+
+class HistorialMovimiento(db.Model):
+    __tablename__ = "sn_historial_movimientos"
+
+    historial_movimiento_id = db.Column(db.Integer, primary_key=True)
+    trabajador_id = db.Column(db.Integer, db.ForeignKey("sn_trabajadores.trabajador_id"), nullable=False)
+    tipo_movimiento = db.Column(db.String(20), nullable=False)  # ALTA / BAJA / REINGRESO / CAMBIO
+    fecha_movimiento = db.Column(db.Date, nullable=False, default=date.today)
+    riesgo_reingreso = db.Column(db.String(20), default="NORMAL")  # NORMAL / MEDIO / ALTO
+    motivo = db.Column(db.String(250))
+    creado_en = db.Column(db.DateTime, default=datetime.utcnow)
+    creado_por = db.Column(db.String(60))
+
+    def to_dict(self):
+        return {
+            "historial_movimiento_id": self.historial_movimiento_id,
+            "trabajador_id": self.trabajador_id,
+            "tipo_movimiento": self.tipo_movimiento,
+            "fecha_movimiento": self.fecha_movimiento.isoformat() if self.fecha_movimiento else None,
+            "riesgo_reingreso": self.riesgo_reingreso,
+            "motivo": self.motivo,
+            "creado_en": self.creado_en.isoformat() if self.creado_en else None,
+            "creado_por": self.creado_por,
         }
 
 

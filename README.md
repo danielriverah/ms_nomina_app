@@ -136,7 +136,7 @@ psycopg2-binary>=2.9
 ### `sn_trabajadores`
 
 Campos principales:
-- `id` (PK)
+- `trabajador_id` (PK)
 - `imss` (único)
 - `rfc`, `curp`
 - `nombre`, `apellido_pat`, `apellido_mat`
@@ -152,7 +152,7 @@ Campos principales:
 ### `sn_periodos_nomina`
 
 Campos principales:
-- `id` (PK)
+- `periodo_nomina_id` (PK)
 - `num_semana`, `anio`
 - `fecha_inicio`, `fecha_fin`, `fecha_pago`
 - `estatus`
@@ -162,7 +162,7 @@ Campos principales:
 ### `sn_incidencias`
 
 Campos principales:
-- `id` (PK)
+- `incidencia_id` (PK)
 - `periodo_nomina_id` (FK a `sn_periodos_nomina.periodo_nomina_id`)
 - `trabajador_id` (FK a `sn_trabajadores.trabajador_id`)
 - `dias_trabajados`, `dias_incapacidad`
@@ -176,10 +176,28 @@ Campos principales:
 - `suma_real`, `neto_real`, `diferencia`
 - `updated_at`, `updated_by`
 
+### `sn_historial_movimientos`
+
+Registra altas, bajas y reingresos.
+- `historial_movimiento_id` (PK)
+- `trabajador_id` (FK a `sn_trabajadores.trabajador_id`)
+- `tipo_movimiento` (`ALTA`, `BAJA`, `REINGRESO`, `CAMBIO`)
+- `fecha_movimiento`
+- `riesgo_reingreso` (`NORMAL`, `MEDIO`, `ALTO`)
+- `motivo`
+- `creado_en`
+- `creado_por`
+
 ### Relaciones
 - Un `sn_trabajador` tiene muchas `sn_incidencias`
 - Un `sn_periodo_nomina` tiene muchas `sn_incidencias`
 - Cada `incidencia` pertenece a un `trabajador` y a un `periodo_nomina`
+- Un `sn_trabajador` tiene muchos `sn_historial_movimientos`
+
+### Reingreso
+- Si un `NSS` ya existía y estaba en baja, la app devuelve una alerta con la fecha de baja y el riesgo.
+- Para reactivarlo, envía `reactivar=true` al crear el alta con el mismo `NSS`.
+- Los campos marcados con `*` en el formulario de alta son obligatorios.
 
 ---
 
