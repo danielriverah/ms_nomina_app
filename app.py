@@ -7,7 +7,8 @@ import traceback
 import logging
 from logging.handlers import RotatingFileHandler
 from datetime import date, datetime, timedelta
-from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for
+from flask import Flask, render_template, request, jsonify, send_file, send_from_directory, redirect, url_for
+from werkzeug.exceptions import HTTPException, NotFound
 import pandas as pd
 import io
 
@@ -52,17 +53,17 @@ app.config["START_TIME"] = datetime.utcnow()
 
 log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
 app.logger.setLevel(getattr(logging, log_level, logging.INFO))
-if not app.logger.handlers:
-    log_path = os.environ.get("APP_LOG_FILE", "nomina_app.log")
-    handler = RotatingFileHandler(log_path, maxBytes=2_000_000, backupCount=3)
-    handler.setLevel(getattr(logging, log_level, logging.INFO))
-    handler.setFormatter(
-        logging.Formatter(
-            "%(asctime)s %(levelname)s [%(process)d] %(message)s"
-        )
-    )
-    app.logger.addHandler(handler)
-    app.logger.propagate = False
+log_path = os.environ.get("APP_LOG_FILE", "logs/nomina_app.log")
+log_dir = os.path.dirname(log_path)
+if log_dir:
+    os.makedirs(log_dir, exist_ok=True)
+handler = RotatingFileHandler(log_path, maxBytes=2_000_000, backupCount=3)
+handler.setLevel(getattr(logging, log_level, logging.INFO))
+handler.setFormatter(
+    logging.Formatter("%(asctime)s %(levelname)s [%(process)d] %(message)s")
+)
+app.logger.addHandler(handler)
+app.logger.propagate = True
 
 @app.before_request
 def log_request_start():
@@ -84,6 +85,15 @@ def log_request_end(response):
     )
     response.headers["X-Process-Time-ms"] = str(elapsed_ms)
     return response
+
+
+@app.errorhandler(HTTPException)
+def handle_http_error(exc):
+    if isinstance(exc, NotFound):
+        app.logger.warning("NOT FOUND %s %s", request.method, request.path)
+        return jsonify({"ok": False, "error": "Ruta no encontrada"}), 404
+    app.logger.warning("HTTP ERROR %s %s: %s", request.method, request.path, exc)
+    return jsonify({"ok": False, "error": exc.description}), exc.code
 
 
 @app.errorhandler(Exception)
@@ -113,6 +123,11 @@ def index():
             500,
         )
     return render_template("index.html")
+
+
+@app.route("/favicon.ico")
+def favicon():
+    return send_from_directory(os.path.dirname(os.path.abspath(__file__)), "favicon.ico")
 
 
 @app.route("/api/startup-error")
